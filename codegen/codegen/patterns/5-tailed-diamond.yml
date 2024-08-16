@@ -1,0 +1,5 @@
+pattern:
+  name: 5-tailed-diamond
+  edges: [AB, BC, CD, AD, BD, AE]
+  orientation: [BD]
+  order: ABCDE

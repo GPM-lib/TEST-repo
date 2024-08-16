@@ -1,0 +1,5 @@
+pattern:
+  name: 5-anti-tailed-diamond
+  edges: [AB, BC, CD, AD, AC, AE]
+  orientation: [BD]
+  order: ABCDE

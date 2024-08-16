@@ -1,0 +1,5 @@
+pattern:
+  name: 5-net
+  edges: [AB, AC, AD, AE, BC, CD, DE, BE]
+  orientation: [BC, CD, DE]
+  order: ABCDE

@@ -1,0 +1,5 @@
+pattern:
+  name: 5-tailed-triangle
+  edges: [AB, AC, AD, CD, BE]
+  orientation: [CD]
+  order: ABECD

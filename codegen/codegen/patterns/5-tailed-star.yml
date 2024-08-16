@@ -1,0 +1,5 @@
+pattern:
+  name: 5-tailed-star
+  edges: [AB, AC, AD, BE]
+  orientation: [CD]
+  order: ABECD
