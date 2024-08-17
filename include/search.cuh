@@ -51,7 +51,7 @@ __forceinline__ __device__ bool binary_search_enhanced(T* list, T key, T size) {
 
 template <typename T = vidType>
 __forceinline__ __device__ bool binary_search_2phase(T *list, T *cache, T key, T size) {
-  if (size == 0) return false; //针对Enron数据集错误发现的特判
+  if (size == 0) return false;
   int p = (threadIdx.x / WARP_SIZE) * WARP_SIZE;
   int mid = 0;
   // phase 1: search in the cache

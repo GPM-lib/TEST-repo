@@ -67,9 +67,6 @@ static size_t print_device_info(bool print_all, bool disable = false) {
   int deviceCount = 0;
   CUDA_SAFE_CALL(cudaGetDeviceCount(&deviceCount));
   if (!disable) printf("Found %d devices\n", deviceCount);
-  // Another way to get the # of cores: #include <helper_cuda.h> in this link:
-  // https://github.com/NVIDIA/cuda-samples/blob/6be514679b201c8a0f0cda050bc7c01c8cda32ec/Common/helper_cuda.h
-  //int CUDACores = _ConvertSMVer2Cores(props.major, props.minor) * props.multiProcessorCount;
   size_t mem_size = 0;
   for (int device = 0; device < deviceCount; device++) {
     cudaDeviceProp prop;

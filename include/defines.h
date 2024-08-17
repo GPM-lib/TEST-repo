@@ -44,7 +44,6 @@
 
 // #define ENABLE_CUCKOO_PROFILE
 
-// TODO: merge join implementation
 #if !defined(BRANCH_MERGE) && !defined(BLESS_MERGE) && !defined(SIMD_MERGE)
 #define BRANCH_MERGE
 #endif

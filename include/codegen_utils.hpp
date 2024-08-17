@@ -111,7 +111,6 @@ __get_vlist_from_heap(Graph &g, StorageMeta& meta, int slot_id) {
     use_one = false;
   }
 
-  // TODO(mengke): can we move this from here?
    uint32_t get_numElement() {
     return bitmap_.get_numElement(vlist_.size());
   }

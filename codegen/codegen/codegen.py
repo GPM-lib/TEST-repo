@@ -33,7 +33,6 @@ class PatternParser:
         res_idx = {}
         if res:
             for x, y in res:
-                # TODO: how to remove this?
                 if int(node_index[y]) > int(node_index[x]):
                     res_idx[node_index[y]] = node_index[x]
                 else:
@@ -667,7 +666,6 @@ class OptimizationPass:
                             # symbols like v0, v1, v2, v3 will not be generated
                             self.vertex_symbol[str(c_lvl+1)] = False
                         else:
-                            # TODO(mengke): we may not have the vid version of this loop_set
                             # symbols like v0, v1, v2, v3 will be generated
                             self.vertex_symbol[str(c_lvl+1)] = True
                     if statement.block.get_next_loop_idx() == None:
@@ -697,7 +695,6 @@ class OptimizationPass:
                             if statement.upper_bound >= 0:
                                 vertex_idx = ID(str(statement.right_operand.operand) + "_idx")
                                 self.global_status[vertex_idx.id()] = statement.upper_bound
-                                # TODO(mengke): now believe nvcc will ignore no-usage memory access
                                 vertex = str(statement.upper_bound)
                                 if not self.vertex_symbol.get((vertex), False):
                                    vertex_idx = ID(vertex + "_idx")
@@ -725,7 +722,7 @@ class OptimizationPass:
                             if desired_pattern[-1] == "I":
                                 # if bitmap is not existed, recover it from index
                                 desired_pattern = c_in_pattern[:-1] + "B"
-                                bid = self.get_new_buffer("B", allocator, desired_pattern, c_lvl, sys.maxsize) # TODO(mengek): this can be reused
+                                bid = self.get_new_buffer("B", allocator, desired_pattern, c_lvl, sys.maxsize) 
                                 ins = Instruction(".B", lhs, bid) # build index from vmap into buffer with ID=bid
                                 c_loop.block.insert_statement(statement_idx, ins)
                                 statement_idx += 1
@@ -740,7 +737,7 @@ class OptimizationPass:
                                 statement.out_pattern = c_out_pattern[:-1] + "B"
                                 c_out_pattern = statement.out_pattern
                                 allocator.del_mapping(c_out_pattern)
-                                bid = self.get_new_buffer("B", allocator, statement.out_pattern, c_lvl, sys.maxsize) # TODO(mengek): this can be reused
+                                bid = self.get_new_buffer("B", allocator, statement.out_pattern, c_lvl, sys.maxsize) 
                                 statement.output = Constant(bid.id())
                                 if statement.upper_bound >= 0:
                                     statement.set_upper_bound(str(statement.upper_bound) + "_idx")
@@ -794,7 +791,7 @@ class OptimizationPass:
                             if desired_pattern[-1] == "B":
                                 # if index is not existed, recover it from Bitmap
                                 desired_pattern = c_in_pattern[:-1] + "I"
-                                bid = self.get_new_buffer("A", allocator, desired_pattern, c_lvl, sys.maxsize) # TODO(mengek): this can be reused
+                                bid = self.get_new_buffer("A", allocator, desired_pattern, c_lvl, sys.maxsize) 
                                 ins = Instruction(".I", lhs, bid) # build index from vmap into buffer with ID=bid
                                 c_loop.block.insert_statement(statement_idx, ins)
                                 statement_idx += 1

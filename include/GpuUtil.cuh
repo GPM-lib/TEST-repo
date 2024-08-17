@@ -351,7 +351,6 @@ __device__ void release_lock(T *lock) {
   }
 }
 
-// 我用ShortTask就行 first = eid, second = v1
 class ShortTask {
 public:
   unsigned long long vertices;
@@ -395,7 +394,7 @@ public:
 
 class LongTask{
 public:
-  int vertices[4]; //这个就是类似我写的任务指示结构体
+  int vertices[4];
   __device__ LongTask(const LongTask &task) {
     for (int i = 0; i < 4; i++) {
       vertices[i] = task.vertices[i];

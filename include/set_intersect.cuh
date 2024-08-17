@@ -160,7 +160,7 @@ __forceinline__ __device__ T intersect_bs_cache_thread_group(T* a, T size_a, T* 
   }
   if (thread_lane == 0) count[thread_group_lane] = 0;
   cache[thread_group_lane * THREAD_GROUP_SIZE + thread_lane] = search[thread_lane * search_size / THREAD_GROUP_SIZE];
-  __syncwarp(sync_mask); //用thread_group的id来算一个warp内掩码，分块做同步;怎么生成这个thread group掩码得想想，后面ballot_sync也要用
+  __syncwarp(sync_mask);
 
   for (auto i = thread_lane; i < lookup_size; i += THREAD_GROUP_SIZE) {
     vidType key = lookup[i]; // each thread picks a vertex as the key

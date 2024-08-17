@@ -129,7 +129,6 @@ __device__ struct VertexMapView {
     use_one = false;
   }
 
-  // TODO(mengke): can we move this from here?
   __device__ uint32_t get_numElement() {
     return bitmap_.get_numElement(vlist_.size());
   }

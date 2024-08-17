@@ -21,7 +21,6 @@ __forceinline__ __device__ void warp_reduce_iterative(vidType &val) {
   val  = SHFL(val, 0);
 }
 
-// from http://forums.nvidia.com/index.php?showtopic=186669
 static __device__ unsigned get_smid(void) {
   unsigned ret;
   asm("mov.u32 %0, %smid;" : "=r"(ret) );

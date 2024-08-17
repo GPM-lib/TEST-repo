@@ -131,10 +131,6 @@ void PartitionedGraph::edgecut_induced_partition1D() {
   }
 }
 
-// CSR segmenting
-// Yunming Zhang et. al., Making caches work for graph analytics,
-// 2017 IEEE International Conference on Big Data (Big Data),
-// https://ieeexplore.ieee.org/document/8257937
 void PartitionedGraph::csr_segmenting() {
   auto nv = g->V();
   // number of 1D partitions is the same as the number of vertex chunks (i.e. number of clusters)

@@ -194,7 +194,6 @@ VertexSet Graph::out_neigh(vidType vid, vidType offset) const {
   return VertexSet(edges + begin + offset, end - begin, vid);
 }
 
-// TODO: fix for directed graph
 VertexSet Graph::in_neigh(vidType vid) const {
   assert(vid >= 0);
   assert(vid < n_vertices);

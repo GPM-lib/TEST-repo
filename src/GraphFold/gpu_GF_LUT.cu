@@ -71,7 +71,6 @@ void PatternSolver(Graph &g, int k, std::vector<uint64_t> &accum, int, int) {
   bitmapType *frontier_bitmap; // each thread has lut rows to store midresult of lut compute
   CUDA_SAFE_CALL(cudaMalloc((void **)&frontier_bitmap, bitmap_size));
 
-  // LUT声明
   Roaring_LUTManager<> lut_manager(nblocks * nwarps, WARP_LIMIT, WARP_LIMIT); 
 
   AccType *G_INDEX, *G_INDEX1, *G_INDEX2, *G_INDEX3;

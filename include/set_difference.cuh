@@ -209,13 +209,12 @@ __forceinline__ __device__ T difference_set_bs_cache(T* a, T* source, T size_a, 
       found = 1;
     unsigned mask = __ballot_sync(active, found);
     auto idx = __popc(mask << (WARP_SIZE-thread_lane-1));
-    if (found) c[count[warp_lane]+idx-1] = a[i]; // 写入source中的索引
+    if (found) c[count[warp_lane]+idx-1] = a[i];
     if (thread_lane == 0) count[warp_lane] += __popc(mask);
   }
   return count[warp_lane];
 }
 
-// 根据source做一次索引再做求差
 template <typename T = vidType>
 __forceinline__ __device__ T difference_set(T* a, T* source, T size_a, T* b, T size_b, T* c) {
   return difference_set_bs_cache(a, source, size_a, b, size_b, c);
