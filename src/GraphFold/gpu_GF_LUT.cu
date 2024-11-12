@@ -12,6 +12,7 @@ typedef cub::BlockReduce<AccType, BLOCK_SIZE> BlockReduce;
 #include "P1_GF_LUT.cuh"
 #include "P2_GF_LUT.cuh"
 #include "P3_GF_LUT.cuh"
+#include "P3_GF_LUT_edge.cuh"
 #include "P7_GF_LUT.cuh"
 
 // #define THREAD_PARALLEL
@@ -84,7 +85,7 @@ void PatternSolver(Graph &g, int k, std::vector<uint64_t> &accum, int, int) {
   CUDA_SAFE_CALL(cudaMalloc((void**) &(G_INDEX1), sizeof(AccType)));
   CUDA_SAFE_CALL(cudaMemcpy(G_INDEX1, &nowindex1, sizeof(AccType), cudaMemcpyHostToDevice));  
   CUDA_SAFE_CALL(cudaMalloc((void**) &(G_INDEX3), sizeof(AccType)));
-  CUDA_SAFE_CALL(cudaMemcpy(G_INDEX1, &nowindex3, sizeof(AccType), cudaMemcpyHostToDevice));  
+  CUDA_SAFE_CALL(cudaMemcpy(G_INDEX3, &nowindex3, sizeof(AccType), cudaMemcpyHostToDevice));  
 
   Timer t;
   t.Start();
@@ -122,8 +123,8 @@ void PatternSolver(Graph &g, int k, std::vector<uint64_t> &accum, int, int) {
   else if (k == 5) {
     std::cout << "P3 GF LUT\n";
     P3_GF_LUT_warp<<<nblocks, nthreads>>>(0, nv, gg, frontier_list, frontier_bitmap, md, d_counts, G_INDEX, lut_manager);
-    lut_manager.recreate(500, md, md);
-    P3_GF_LUT_block<<<500, nthreads>>>(0, nv, gg, frontier_list, frontier_bitmap, md, d_counts, G_INDEX3, lut_manager);
+    lut_manager.recreate(nblocks, md, md);
+    P3_GF_LUT_block<<<nblocks, nthreads>>>(0, nv, gg, frontier_list, frontier_bitmap, md, d_counts, G_INDEX1, lut_manager);
   }
   else if (k == 6) {
     std::cout << "P7 GF\n";
@@ -134,6 +135,12 @@ void PatternSolver(Graph &g, int k, std::vector<uint64_t> &accum, int, int) {
     P7_GF_LUT_warp<<<nblocks, nthreads>>>(0, ne, gg, frontier_list, frontier_bitmap, md, d_counts, G_INDEX, lut_manager);
     lut_manager.recreate(500, md, md);
     P7_GF_LUT_block<<<500, nthreads>>>(0, ne, gg, frontier_list, frontier_bitmap, md, d_counts, G_INDEX3, lut_manager);
+  }
+  else if (k == 8) {
+    std::cout << "P3 GF LUT edge\n";
+    P3_GF_LUT_warp_edge<<<nblocks, nthreads>>>(0, ne, gg, frontier_list, frontier_bitmap, md, d_counts, G_INDEX, lut_manager);
+    lut_manager.recreate(500, md, md);
+    P3_GF_LUT_block_edge<<<500, nthreads>>>(0, ne, gg, frontier_list, frontier_bitmap, md, d_counts, G_INDEX3, lut_manager);
   }
   else {
     std::cout << "Not supported right now\n";

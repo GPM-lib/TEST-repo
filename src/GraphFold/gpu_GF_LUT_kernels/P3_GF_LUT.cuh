@@ -119,6 +119,7 @@ __global__ void P3_GF_LUT_block(vidType begin, vidType end, GraphGPU g,
       continue;
     }
     lut.build_roaring_LUT_block(g.N(v0), v0_size, g);
+    __syncthreads();
     for (vidType v1_idx = warp_lane; v1_idx < v0_size; v1_idx += WARPS_PER_BLOCK) {
       vidType v1 = g.N(v0)[v1_idx];
       vidType v1_size = g.getOutDegree(v1);
