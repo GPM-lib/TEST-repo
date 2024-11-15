@@ -1,5 +1,7 @@
 #!/bin/bash
-PATTERN="P7"
+set -e
+
+PATTERN="P1"
 
 cd gpu_GM_LUT_kernels
 cp -f ./GM_LUT_kernels/${PATTERN}.yml.cuh ./GM_LUT.cuh

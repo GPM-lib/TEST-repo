@@ -53,10 +53,6 @@ void PatternSolver(Graph &g, int k, std::vector<uint64_t> &accum, int, int) {
     n_bitmaps = __N_BITMAPS1;
   }
   else if (k == 2){
-    n_lists = __N_LISTS2;
-    n_bitmaps = __N_BITMAPS2;
-  }
-  else if (k == 3) {
     n_lists = __N_LISTS3;
     n_bitmaps = __N_BITMAPS3;
   }
@@ -64,6 +60,9 @@ void PatternSolver(Graph &g, int k, std::vector<uint64_t> &accum, int, int) {
     n_lists = __N_LISTS1;
     n_bitmaps = __N_BITMAPS1;    
   }
+
+  vidType switch_lut = 1;
+  switch_lut = Select_func(nv, ne, md);
 
   size_t per_block_vlist_size = nwarps * n_lists * size_t(md) * sizeof(vidType);
   size_t per_block_bitmap_size = nwarps * n_bitmaps * ((size_t(md) + BITMAP_WIDTH-1)/BITMAP_WIDTH) * sizeof(vidType);
@@ -132,34 +131,29 @@ void PatternSolver(Graph &g, int k, std::vector<uint64_t> &accum, int, int) {
   // G2Miner + LUT
   if (k == 1) {
     std::cout << "Run G2Miner + LUT\n";
-    if (WARP_LIMIT != 0) GM_LUT_warp<<<nblocks, nthreads>>>(0, vid_warp_size, d_vid_warp, gg, frontier_list, frontier_bitmap, md, d_counts, lut_manager);
-    if (vid_block_size) {
-      lut_manager.recreate(nblocks, BLOCK_LIMIT, BLOCK_LIMIT, true);
-      GM_LUT_block<<<nblocks, nthreads>>>(0, vid_block_size, d_vid_block, gg, frontier_list, frontier_bitmap, md, d_counts, lut_manager);
-    }
-    if (vid_global_size){
-      lut_manager.recreate(1, md, md, true);
-      nblocks = BLOCK_GROUP;
-      for (vidType i = 0; i < vid_global_size; i++) {
-        vidType task_id = vid_global[i];
-        lut_manager.update_para(1, g.get_degree(task_id), g.get_degree(task_id), true);
-        GM_build_LUT<<<nblocks, nthreads>>>(0, nv, gg, frontier_list, frontier_bitmap, md, d_counts, lut_manager, task_id);
-        GM_LUT_global<<<nblocks, nthreads>>>(0, nv, gg, frontier_list, frontier_bitmap, md, d_counts, lut_manager, task_id);
+    if (switch_lut){
+      if (WARP_LIMIT != 0) GM_LUT_warp<<<nblocks, nthreads>>>(0, vid_warp_size, d_vid_warp, gg, frontier_list, frontier_bitmap, md, d_counts, lut_manager);
+      if (vid_block_size) {
+        lut_manager.recreate(nblocks, BLOCK_LIMIT, BLOCK_LIMIT, true);
+        GM_LUT_block<<<nblocks, nthreads>>>(0, vid_block_size, d_vid_block, gg, frontier_list, frontier_bitmap, md, d_counts, lut_manager);
+      }
+      if (vid_global_size){
+        lut_manager.recreate(1, md, md, true);
+        nblocks = BLOCK_GROUP;
+        for (vidType i = 0; i < vid_global_size; i++) {
+          vidType task_id = vid_global[i];
+          lut_manager.update_para(1, g.get_degree(task_id), g.get_degree(task_id), true);
+          GM_build_LUT<<<nblocks, nthreads>>>(0, nv, gg, frontier_list, frontier_bitmap, md, d_counts, lut_manager, task_id);
+          GM_LUT_global<<<nblocks, nthreads>>>(0, nv, gg, frontier_list, frontier_bitmap, md, d_counts, lut_manager, task_id);
+        }
       }
     }
-  }
-  // G2Miner + LUT build deeper level
-  else if (k == 2) {
-    std::cout << "Run G2Miner + LUT\n";
-    GM_LUT_warp_deep<<<nblocks, nthreads>>>(0, ne, gg, frontier_list, frontier_bitmap, md, d_counts, lut_manager);
-    lut_manager.recreate(nblocks, BLOCK_LIMIT, BLOCK_LIMIT, true);
-    GM_LUT_block_deep<<<nblocks, nthreads>>>(0, ne, gg, frontier_list, frontier_bitmap, md, d_counts, lut_manager);
-    lut_manager.recreate(BLOCK_GROUP, md, md, true);
-    nblocks = BLOCK_GROUP;
-    GM_LUT_block_large_deep<<<nblocks, nthreads>>>(0, ne, gg, frontier_list, frontier_bitmap, md, d_counts, lut_manager);
+    else {
+      BS_edge<<<nblocks, nthreads>>>(ne, gg, frontier_list, frontier_bitmap, md, d_counts, lut_manager);
+    }
   }
   // G2Miner
-  else if (k == 3){
+  else if (k == 2){
     std::cout << "Run G2Miner\n";
     BS_edge<<<nblocks, nthreads>>>(ne, gg, frontier_list, frontier_bitmap, md, d_counts, lut_manager);
   }

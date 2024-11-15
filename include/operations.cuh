@@ -103,6 +103,16 @@ __forceinline__ __device__ unsigned count_smaller(vidType bound, vidType *a, vid
   return count[warp_lane];
 }
 
+int Select_func(vidType nv,eidType ne, vidType md) {
+  float avg = (float)ne / nv;
+  if (nv < 11500 && avg > 5 && md < 2500 && md > 2400) return 1;
+  if (nv < 24000 && avg < 13 && md < 2620) return 0;
+  if (nv < 12000 && avg < 9 && md < 3090) return 0;
+  if (nv > 62000 && nv < 70000 && (md == 78 || md == 1391)) return 1;
+  if (nv < 170000 && avg < 5) return 0;
+  return 1;
+}
+
 template <typename T = vidType>
 __forceinline__ __device__ T all_pairs_compare(T a, T b) {
   T count = 0;

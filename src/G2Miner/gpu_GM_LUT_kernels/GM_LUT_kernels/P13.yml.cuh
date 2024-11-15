@@ -118,6 +118,7 @@ GM_LUT_block(vidType begin, vidType end,
         }
       }
     }
+    __syncthreads();
   }
   // END OF CODEGEN
 
