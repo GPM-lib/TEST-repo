@@ -2,7 +2,7 @@
 #define __N_BITMAPS1 2
 
 __global__ void __launch_bounds__(BLOCK_SIZE, 8)
-GM_LUT_warp(vidType begin, vidType end, 
+P10_GM_LUT_warp(vidType begin, vidType end, 
                   vidType *vid_list, 
                   GraphGPU g, 
                   vidType *vlists,
@@ -63,7 +63,7 @@ GM_LUT_warp(vidType begin, vidType end,
 }
 
 __global__ void __launch_bounds__(BLOCK_SIZE, 8)
-GM_LUT_block(vidType begin, vidType end, 
+P10_GM_LUT_block(vidType begin, vidType end, 
                   vidType *vid_list,
                   GraphGPU g, 
                   vidType *vlists,
@@ -128,7 +128,7 @@ GM_LUT_block(vidType begin, vidType end,
 }
 
 __global__ void __launch_bounds__(BLOCK_SIZE, 8)
-GM_LUT_global(vidType begin, vidType end, 
+P10_GM_LUT_global(vidType begin, vidType end, 
                   GraphGPU g, 
                   vidType *vlists,
                   bitmapType* bitmaps,

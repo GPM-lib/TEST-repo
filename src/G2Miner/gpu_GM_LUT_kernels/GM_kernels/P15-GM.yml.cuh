@@ -2,7 +2,7 @@
 #define __N_BITMAPS3 1
 
 __global__ void __launch_bounds__(BLOCK_SIZE, 8)
-BS_edge(eidType ne, 
+P15_GM(eidType ne, 
                   GraphGPU g, 
                   vidType *vlists,
                   bitmapType* bitmaps,

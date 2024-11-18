@@ -15,8 +15,6 @@ typedef cub::BlockReduce<AccType, BLOCK_SIZE> BlockReduce;
 
 // #define THREAD_PARALLEL
 
-// K = 1: G2Miner + LUT
-// K = 2: G2Miner
 
 __global__ void clear(AccType *accumulators) {
   int i = blockIdx.x * blockDim.x + threadIdx.x;
@@ -48,18 +46,8 @@ void PatternSolver(Graph &g, int k, std::vector<uint64_t> &accum, int, int) {
   size_t nwarps = WARPS_PER_BLOCK;
   size_t n_lists;
   size_t n_bitmaps;
-  if (k == 1){
-    n_lists = __N_LISTS1;
-    n_bitmaps = __N_BITMAPS1;
-  }
-  else if (k == 2){
-    n_lists = __N_LISTS3;
-    n_bitmaps = __N_BITMAPS3;
-  }
-  else {
-    n_lists = __N_LISTS1;
-    n_bitmaps = __N_BITMAPS1;    
-  }
+  n_lists = 7;
+  n_bitmaps = 3;
 
   vidType switch_lut = 1;
   switch_lut = Select_func(nv, ne, md);
@@ -130,12 +118,12 @@ void PatternSolver(Graph &g, int k, std::vector<uint64_t> &accum, int, int) {
   t.Start();
   // G2Miner + LUT
   if (k == 1) {
-    std::cout << "Run G2Miner + LUT\n";
+    std::cout << "P1 G2Miner + LUT\n";
     if (switch_lut){
-      if (WARP_LIMIT != 0) GM_LUT_warp<<<nblocks, nthreads>>>(0, vid_warp_size, d_vid_warp, gg, frontier_list, frontier_bitmap, md, d_counts, lut_manager);
+      if (WARP_LIMIT != 0) P1_GM_LUT_warp<<<nblocks, nthreads>>>(0, vid_warp_size, d_vid_warp, gg, frontier_list, frontier_bitmap, md, d_counts, lut_manager);
       if (vid_block_size) {
         lut_manager.recreate(nblocks, BLOCK_LIMIT, BLOCK_LIMIT, true);
-        GM_LUT_block<<<nblocks, nthreads>>>(0, vid_block_size, d_vid_block, gg, frontier_list, frontier_bitmap, md, d_counts, lut_manager);
+        P1_GM_LUT_block<<<nblocks, nthreads>>>(0, vid_block_size, d_vid_block, gg, frontier_list, frontier_bitmap, md, d_counts, lut_manager);
       }
       if (vid_global_size){
         lut_manager.recreate(1, md, md, true);
@@ -144,18 +132,450 @@ void PatternSolver(Graph &g, int k, std::vector<uint64_t> &accum, int, int) {
           vidType task_id = vid_global[i];
           lut_manager.update_para(1, g.get_degree(task_id), g.get_degree(task_id), true);
           GM_build_LUT<<<nblocks, nthreads>>>(0, nv, gg, frontier_list, frontier_bitmap, md, d_counts, lut_manager, task_id);
-          GM_LUT_global<<<nblocks, nthreads>>>(0, nv, gg, frontier_list, frontier_bitmap, md, d_counts, lut_manager, task_id);
+          P1_GM_LUT_global<<<nblocks, nthreads>>>(0, nv, gg, frontier_list, frontier_bitmap, md, d_counts, lut_manager, task_id);
         }
       }
     }
     else {
-      BS_edge<<<nblocks, nthreads>>>(ne, gg, frontier_list, frontier_bitmap, md, d_counts, lut_manager);
+      P1_GM<<<nblocks, nthreads>>>(ne, gg, frontier_list, frontier_bitmap, md, d_counts, lut_manager);
     }
   }
-  // G2Miner
-  else if (k == 2){
-    std::cout << "Run G2Miner\n";
-    BS_edge<<<nblocks, nthreads>>>(ne, gg, frontier_list, frontier_bitmap, md, d_counts, lut_manager);
+  else if (k == 2) {
+    std::cout << "P2 G2Miner + LUT\n";
+    if (switch_lut){
+      if (WARP_LIMIT != 0) P2_GM_LUT_warp<<<nblocks, nthreads>>>(0, vid_warp_size, d_vid_warp, gg, frontier_list, frontier_bitmap, md, d_counts, lut_manager);
+      if (vid_block_size) {
+        lut_manager.recreate(nblocks, BLOCK_LIMIT, BLOCK_LIMIT, true);
+        P2_GM_LUT_block<<<nblocks, nthreads>>>(0, vid_block_size, d_vid_block, gg, frontier_list, frontier_bitmap, md, d_counts, lut_manager);
+      }
+      if (vid_global_size){
+        lut_manager.recreate(1, md, md, true);
+        nblocks = BLOCK_GROUP;
+        for (vidType i = 0; i < vid_global_size; i++) {
+          vidType task_id = vid_global[i];
+          lut_manager.update_para(1, g.get_degree(task_id), g.get_degree(task_id), true);
+          GM_build_LUT<<<nblocks, nthreads>>>(0, nv, gg, frontier_list, frontier_bitmap, md, d_counts, lut_manager, task_id);
+          P2_GM_LUT_global<<<nblocks, nthreads>>>(0, nv, gg, frontier_list, frontier_bitmap, md, d_counts, lut_manager, task_id);
+        }
+      }
+    }
+    else {
+      P2_GM<<<nblocks, nthreads>>>(ne, gg, frontier_list, frontier_bitmap, md, d_counts, lut_manager);
+    }
+  }
+  else if (k == 3) {
+    std::cout << "P3 G2Miner + LUT\n";
+    if (switch_lut){
+      if (WARP_LIMIT != 0) P3_GM_LUT_warp<<<nblocks, nthreads>>>(0, vid_warp_size, d_vid_warp, gg, frontier_list, frontier_bitmap, md, d_counts, lut_manager);
+      if (vid_block_size) {
+        lut_manager.recreate(nblocks, BLOCK_LIMIT, BLOCK_LIMIT, true);
+        P3_GM_LUT_block<<<nblocks, nthreads>>>(0, vid_block_size, d_vid_block, gg, frontier_list, frontier_bitmap, md, d_counts, lut_manager);
+      }
+      if (vid_global_size){
+        lut_manager.recreate(1, md, md, true);
+        nblocks = BLOCK_GROUP;
+        for (vidType i = 0; i < vid_global_size; i++) {
+          vidType task_id = vid_global[i];
+          lut_manager.update_para(1, g.get_degree(task_id), g.get_degree(task_id), true);
+          GM_build_LUT<<<nblocks, nthreads>>>(0, nv, gg, frontier_list, frontier_bitmap, md, d_counts, lut_manager, task_id);
+          P3_GM_LUT_global<<<nblocks, nthreads>>>(0, nv, gg, frontier_list, frontier_bitmap, md, d_counts, lut_manager, task_id);
+        }
+      }
+    }
+    else {
+      P3_GM<<<nblocks, nthreads>>>(ne, gg, frontier_list, frontier_bitmap, md, d_counts, lut_manager);
+    }
+  }
+  else if (k == 6) {
+    std::cout << "P6 G2Miner + LUT\n";
+    if (switch_lut){
+      if (WARP_LIMIT != 0) P6_GM_LUT_warp<<<nblocks, nthreads>>>(0, vid_warp_size, d_vid_warp, gg, frontier_list, frontier_bitmap, md, d_counts, lut_manager);
+      if (vid_block_size) {
+        lut_manager.recreate(nblocks, BLOCK_LIMIT, BLOCK_LIMIT, true);
+        P6_GM_LUT_block<<<nblocks, nthreads>>>(0, vid_block_size, d_vid_block, gg, frontier_list, frontier_bitmap, md, d_counts, lut_manager);
+      }
+      if (vid_global_size){
+        lut_manager.recreate(1, md, md, true);
+        nblocks = BLOCK_GROUP;
+        for (vidType i = 0; i < vid_global_size; i++) {
+          vidType task_id = vid_global[i];
+          lut_manager.update_para(1, g.get_degree(task_id), g.get_degree(task_id), true);
+          GM_build_LUT<<<nblocks, nthreads>>>(0, nv, gg, frontier_list, frontier_bitmap, md, d_counts, lut_manager, task_id);
+          P6_GM_LUT_global<<<nblocks, nthreads>>>(0, nv, gg, frontier_list, frontier_bitmap, md, d_counts, lut_manager, task_id);
+        }
+      }
+    }
+    else {
+      P6_GM<<<nblocks, nthreads>>>(ne, gg, frontier_list, frontier_bitmap, md, d_counts, lut_manager);
+    }
+  }
+  else if (k == 7) {
+    std::cout << "P7 G2Miner + LUT\n";
+    if (switch_lut){
+      if (WARP_LIMIT != 0) P7_GM_LUT_warp<<<nblocks, nthreads>>>(0, vid_warp_size, d_vid_warp, gg, frontier_list, frontier_bitmap, md, d_counts, lut_manager);
+      if (vid_block_size) {
+        lut_manager.recreate(nblocks, BLOCK_LIMIT, BLOCK_LIMIT, true);
+        P7_GM_LUT_block<<<nblocks, nthreads>>>(0, vid_block_size, d_vid_block, gg, frontier_list, frontier_bitmap, md, d_counts, lut_manager);
+      }
+      if (vid_global_size){
+        lut_manager.recreate(1, md, md, true);
+        nblocks = BLOCK_GROUP;
+        for (vidType i = 0; i < vid_global_size; i++) {
+          vidType task_id = vid_global[i];
+          lut_manager.update_para(1, g.get_degree(task_id), g.get_degree(task_id), true);
+          GM_build_LUT<<<nblocks, nthreads>>>(0, nv, gg, frontier_list, frontier_bitmap, md, d_counts, lut_manager, task_id);
+          P7_GM_LUT_global<<<nblocks, nthreads>>>(0, nv, gg, frontier_list, frontier_bitmap, md, d_counts, lut_manager, task_id);
+        }
+      }
+    }
+    else {
+      P7_GM<<<nblocks, nthreads>>>(ne, gg, frontier_list, frontier_bitmap, md, d_counts, lut_manager);
+    }
+  }
+  else if (k == 8) {
+    std::cout << "P8 G2Miner + LUT\n";
+    if (switch_lut){
+      if (WARP_LIMIT != 0) P8_GM_LUT_warp<<<nblocks, nthreads>>>(0, vid_warp_size, d_vid_warp, gg, frontier_list, frontier_bitmap, md, d_counts, lut_manager);
+      if (vid_block_size) {
+        lut_manager.recreate(nblocks, BLOCK_LIMIT, BLOCK_LIMIT, true);
+        P8_GM_LUT_block<<<nblocks, nthreads>>>(0, vid_block_size, d_vid_block, gg, frontier_list, frontier_bitmap, md, d_counts, lut_manager);
+      }
+      if (vid_global_size){
+        lut_manager.recreate(1, md, md, true);
+        nblocks = BLOCK_GROUP;
+        for (vidType i = 0; i < vid_global_size; i++) {
+          vidType task_id = vid_global[i];
+          lut_manager.update_para(1, g.get_degree(task_id), g.get_degree(task_id), true);
+          GM_build_LUT<<<nblocks, nthreads>>>(0, nv, gg, frontier_list, frontier_bitmap, md, d_counts, lut_manager, task_id);
+          P8_GM_LUT_global<<<nblocks, nthreads>>>(0, nv, gg, frontier_list, frontier_bitmap, md, d_counts, lut_manager, task_id);
+        }
+      }
+    }
+    else {
+      P8_GM<<<nblocks, nthreads>>>(ne, gg, frontier_list, frontier_bitmap, md, d_counts, lut_manager);
+    }
+  }
+  else if (k == 9) {
+    std::cout << "P9 G2Miner + LUT\n";
+    if (switch_lut){
+      if (WARP_LIMIT != 0) P9_GM_LUT_warp<<<nblocks, nthreads>>>(0, vid_warp_size, d_vid_warp, gg, frontier_list, frontier_bitmap, md, d_counts, lut_manager);
+      if (vid_block_size) {
+        lut_manager.recreate(nblocks, BLOCK_LIMIT, BLOCK_LIMIT, true);
+        P9_GM_LUT_block<<<nblocks, nthreads>>>(0, vid_block_size, d_vid_block, gg, frontier_list, frontier_bitmap, md, d_counts, lut_manager);
+      }
+      if (vid_global_size){
+        lut_manager.recreate(1, md, md, true);
+        nblocks = BLOCK_GROUP;
+        for (vidType i = 0; i < vid_global_size; i++) {
+          vidType task_id = vid_global[i];
+          lut_manager.update_para(1, g.get_degree(task_id), g.get_degree(task_id), true);
+          GM_build_LUT<<<nblocks, nthreads>>>(0, nv, gg, frontier_list, frontier_bitmap, md, d_counts, lut_manager, task_id);
+          P9_GM_LUT_global<<<nblocks, nthreads>>>(0, nv, gg, frontier_list, frontier_bitmap, md, d_counts, lut_manager, task_id);
+        }
+      }
+    }
+    else {
+      P9_GM<<<nblocks, nthreads>>>(ne, gg, frontier_list, frontier_bitmap, md, d_counts, lut_manager);
+    }
+  }
+  else if (k == 10) {
+    std::cout << "P10 G2Miner + LUT\n";
+    if (switch_lut){
+      if (WARP_LIMIT != 0) P10_GM_LUT_warp<<<nblocks, nthreads>>>(0, vid_warp_size, d_vid_warp, gg, frontier_list, frontier_bitmap, md, d_counts, lut_manager);
+      if (vid_block_size) {
+        lut_manager.recreate(nblocks, BLOCK_LIMIT, BLOCK_LIMIT, true);
+        P10_GM_LUT_block<<<nblocks, nthreads>>>(0, vid_block_size, d_vid_block, gg, frontier_list, frontier_bitmap, md, d_counts, lut_manager);
+      }
+      if (vid_global_size){
+        lut_manager.recreate(1, md, md, true);
+        nblocks = BLOCK_GROUP;
+        for (vidType i = 0; i < vid_global_size; i++) {
+          vidType task_id = vid_global[i];
+          lut_manager.update_para(1, g.get_degree(task_id), g.get_degree(task_id), true);
+          GM_build_LUT<<<nblocks, nthreads>>>(0, nv, gg, frontier_list, frontier_bitmap, md, d_counts, lut_manager, task_id);
+          P10_GM_LUT_global<<<nblocks, nthreads>>>(0, nv, gg, frontier_list, frontier_bitmap, md, d_counts, lut_manager, task_id);
+        }
+      }
+    }
+    else {
+      P10_GM<<<nblocks, nthreads>>>(ne, gg, frontier_list, frontier_bitmap, md, d_counts, lut_manager);
+    }
+  }
+  else if (k == 11) {
+    std::cout << "P11 G2Miner + LUT\n";
+    if (switch_lut){
+      if (WARP_LIMIT != 0) P11_GM_LUT_warp<<<nblocks, nthreads>>>(0, vid_warp_size, d_vid_warp, gg, frontier_list, frontier_bitmap, md, d_counts, lut_manager);
+      if (vid_block_size) {
+        lut_manager.recreate(nblocks, BLOCK_LIMIT, BLOCK_LIMIT, true);
+        P11_GM_LUT_block<<<nblocks, nthreads>>>(0, vid_block_size, d_vid_block, gg, frontier_list, frontier_bitmap, md, d_counts, lut_manager);
+      }
+      if (vid_global_size){
+        lut_manager.recreate(1, md, md, true);
+        nblocks = BLOCK_GROUP;
+        for (vidType i = 0; i < vid_global_size; i++) {
+          vidType task_id = vid_global[i];
+          lut_manager.update_para(1, g.get_degree(task_id), g.get_degree(task_id), true);
+          GM_build_LUT<<<nblocks, nthreads>>>(0, nv, gg, frontier_list, frontier_bitmap, md, d_counts, lut_manager, task_id);
+          P11_GM_LUT_global<<<nblocks, nthreads>>>(0, nv, gg, frontier_list, frontier_bitmap, md, d_counts, lut_manager, task_id);
+        }
+      }
+    }
+    else {
+      P11_GM<<<nblocks, nthreads>>>(ne, gg, frontier_list, frontier_bitmap, md, d_counts, lut_manager);
+    }
+  }
+  else if (k == 12) {
+    std::cout << "P12 G2Miner + LUT\n";
+    if (switch_lut){
+      if (WARP_LIMIT != 0) P12_GM_LUT_warp<<<nblocks, nthreads>>>(0, vid_warp_size, d_vid_warp, gg, frontier_list, frontier_bitmap, md, d_counts, lut_manager);
+      if (vid_block_size) {
+        lut_manager.recreate(nblocks, BLOCK_LIMIT, BLOCK_LIMIT, true);
+        P12_GM_LUT_block<<<nblocks, nthreads>>>(0, vid_block_size, d_vid_block, gg, frontier_list, frontier_bitmap, md, d_counts, lut_manager);
+      }
+      if (vid_global_size){
+        lut_manager.recreate(1, md, md, true);
+        nblocks = BLOCK_GROUP;
+        for (vidType i = 0; i < vid_global_size; i++) {
+          vidType task_id = vid_global[i];
+          lut_manager.update_para(1, g.get_degree(task_id), g.get_degree(task_id), true);
+          GM_build_LUT<<<nblocks, nthreads>>>(0, nv, gg, frontier_list, frontier_bitmap, md, d_counts, lut_manager, task_id);
+          P12_GM_LUT_global<<<nblocks, nthreads>>>(0, nv, gg, frontier_list, frontier_bitmap, md, d_counts, lut_manager, task_id);
+        }
+      }
+    }
+    else {
+      P12_GM<<<nblocks, nthreads>>>(ne, gg, frontier_list, frontier_bitmap, md, d_counts, lut_manager);
+    }
+  }
+  else if (k == 13) {
+    std::cout << "P13 G2Miner + LUT\n";
+    if (switch_lut){
+      if (WARP_LIMIT != 0) P13_GM_LUT_warp<<<nblocks, nthreads>>>(0, vid_warp_size, d_vid_warp, gg, frontier_list, frontier_bitmap, md, d_counts, lut_manager);
+      if (vid_block_size) {
+        lut_manager.recreate(nblocks, BLOCK_LIMIT, BLOCK_LIMIT, true);
+        P13_GM_LUT_block<<<nblocks, nthreads>>>(0, vid_block_size, d_vid_block, gg, frontier_list, frontier_bitmap, md, d_counts, lut_manager);
+      }
+      if (vid_global_size){
+        lut_manager.recreate(1, md, md, true);
+        nblocks = BLOCK_GROUP;
+        for (vidType i = 0; i < vid_global_size; i++) {
+          vidType task_id = vid_global[i];
+          lut_manager.update_para(1, g.get_degree(task_id), g.get_degree(task_id), true);
+          GM_build_LUT<<<nblocks, nthreads>>>(0, nv, gg, frontier_list, frontier_bitmap, md, d_counts, lut_manager, task_id);
+          P13_GM_LUT_global<<<nblocks, nthreads>>>(0, nv, gg, frontier_list, frontier_bitmap, md, d_counts, lut_manager, task_id);
+        }
+      }
+    }
+    else {
+      P13_GM<<<nblocks, nthreads>>>(ne, gg, frontier_list, frontier_bitmap, md, d_counts, lut_manager);
+    }
+  }
+  else if (k == 14) {
+    std::cout << "P14 G2Miner + LUT\n";
+    if (switch_lut){
+      if (WARP_LIMIT != 0) P14_GM_LUT_warp<<<nblocks, nthreads>>>(0, vid_warp_size, d_vid_warp, gg, frontier_list, frontier_bitmap, md, d_counts, lut_manager);
+      if (vid_block_size) {
+        lut_manager.recreate(nblocks, BLOCK_LIMIT, BLOCK_LIMIT, true);
+        P14_GM_LUT_block<<<nblocks, nthreads>>>(0, vid_block_size, d_vid_block, gg, frontier_list, frontier_bitmap, md, d_counts, lut_manager);
+      }
+      if (vid_global_size){
+        lut_manager.recreate(1, md, md, true);
+        nblocks = BLOCK_GROUP;
+        for (vidType i = 0; i < vid_global_size; i++) {
+          vidType task_id = vid_global[i];
+          lut_manager.update_para(1, g.get_degree(task_id), g.get_degree(task_id), true);
+          GM_build_LUT<<<nblocks, nthreads>>>(0, nv, gg, frontier_list, frontier_bitmap, md, d_counts, lut_manager, task_id);
+          P14_GM_LUT_global<<<nblocks, nthreads>>>(0, nv, gg, frontier_list, frontier_bitmap, md, d_counts, lut_manager, task_id);
+        }
+      }
+    }
+    else {
+      P14_GM<<<nblocks, nthreads>>>(ne, gg, frontier_list, frontier_bitmap, md, d_counts, lut_manager);
+    }
+  }
+  else if (k == 15) {
+    std::cout << "P15 G2Miner + LUT\n";
+    if (switch_lut){
+      if (WARP_LIMIT != 0) P15_GM_LUT_warp<<<nblocks, nthreads>>>(0, vid_warp_size, d_vid_warp, gg, frontier_list, frontier_bitmap, md, d_counts, lut_manager);
+      if (vid_block_size) {
+        lut_manager.recreate(nblocks, BLOCK_LIMIT, BLOCK_LIMIT, true);
+        P15_GM_LUT_block<<<nblocks, nthreads>>>(0, vid_block_size, d_vid_block, gg, frontier_list, frontier_bitmap, md, d_counts, lut_manager);
+      }
+      if (vid_global_size){
+        lut_manager.recreate(1, md, md, true);
+        nblocks = BLOCK_GROUP;
+        for (vidType i = 0; i < vid_global_size; i++) {
+          vidType task_id = vid_global[i];
+          lut_manager.update_para(1, g.get_degree(task_id), g.get_degree(task_id), true);
+          GM_build_LUT<<<nblocks, nthreads>>>(0, nv, gg, frontier_list, frontier_bitmap, md, d_counts, lut_manager, task_id);
+          P15_GM_LUT_global<<<nblocks, nthreads>>>(0, nv, gg, frontier_list, frontier_bitmap, md, d_counts, lut_manager, task_id);
+        }
+      }
+    }
+    else {
+      P15_GM<<<nblocks, nthreads>>>(ne, gg, frontier_list, frontier_bitmap, md, d_counts, lut_manager);
+    }
+  }
+  else if (k == 16) {
+    std::cout << "P16 G2Miner + LUT\n";
+    if (switch_lut){
+      if (WARP_LIMIT != 0) P16_GM_LUT_warp<<<nblocks, nthreads>>>(0, vid_warp_size, d_vid_warp, gg, frontier_list, frontier_bitmap, md, d_counts, lut_manager);
+      if (vid_block_size) {
+        lut_manager.recreate(nblocks, BLOCK_LIMIT, BLOCK_LIMIT, true);
+        P16_GM_LUT_block<<<nblocks, nthreads>>>(0, vid_block_size, d_vid_block, gg, frontier_list, frontier_bitmap, md, d_counts, lut_manager);
+      }
+      if (vid_global_size){
+        lut_manager.recreate(1, md, md, true);
+        nblocks = BLOCK_GROUP;
+        for (vidType i = 0; i < vid_global_size; i++) {
+          vidType task_id = vid_global[i];
+          lut_manager.update_para(1, g.get_degree(task_id), g.get_degree(task_id), true);
+          GM_build_LUT<<<nblocks, nthreads>>>(0, nv, gg, frontier_list, frontier_bitmap, md, d_counts, lut_manager, task_id);
+          P16_GM_LUT_global<<<nblocks, nthreads>>>(0, nv, gg, frontier_list, frontier_bitmap, md, d_counts, lut_manager, task_id);
+        }
+      }
+    }
+    else {
+      P16_GM<<<nblocks, nthreads>>>(ne, gg, frontier_list, frontier_bitmap, md, d_counts, lut_manager);
+    }
+  }
+  else if (k == 17) {
+    std::cout << "P17 G2Miner + LUT\n";
+    if (switch_lut){
+      if (WARP_LIMIT != 0) P17_GM_LUT_warp<<<nblocks, nthreads>>>(0, vid_warp_size, d_vid_warp, gg, frontier_list, frontier_bitmap, md, d_counts, lut_manager);
+      if (vid_block_size) {
+        lut_manager.recreate(nblocks, BLOCK_LIMIT, BLOCK_LIMIT, true);
+        P17_GM_LUT_block<<<nblocks, nthreads>>>(0, vid_block_size, d_vid_block, gg, frontier_list, frontier_bitmap, md, d_counts, lut_manager);
+      }
+      if (vid_global_size){
+        lut_manager.recreate(1, md, md, true);
+        nblocks = BLOCK_GROUP;
+        for (vidType i = 0; i < vid_global_size; i++) {
+          vidType task_id = vid_global[i];
+          lut_manager.update_para(1, g.get_degree(task_id), g.get_degree(task_id), true);
+          GM_build_LUT<<<nblocks, nthreads>>>(0, nv, gg, frontier_list, frontier_bitmap, md, d_counts, lut_manager, task_id);
+          P17_GM_LUT_global<<<nblocks, nthreads>>>(0, nv, gg, frontier_list, frontier_bitmap, md, d_counts, lut_manager, task_id);
+        }
+      }
+    }
+    else {
+      P17_GM<<<nblocks, nthreads>>>(ne, gg, frontier_list, frontier_bitmap, md, d_counts, lut_manager);
+    }
+  }
+  else if (k == 18) {
+    std::cout << "P18 G2Miner + LUT\n";
+    if (switch_lut){
+      if (WARP_LIMIT != 0) P18_GM_LUT_warp<<<nblocks, nthreads>>>(0, vid_warp_size, d_vid_warp, gg, frontier_list, frontier_bitmap, md, d_counts, lut_manager);
+      if (vid_block_size) {
+        lut_manager.recreate(nblocks, BLOCK_LIMIT, BLOCK_LIMIT, true);
+        P18_GM_LUT_block<<<nblocks, nthreads>>>(0, vid_block_size, d_vid_block, gg, frontier_list, frontier_bitmap, md, d_counts, lut_manager);
+      }
+      if (vid_global_size){
+        lut_manager.recreate(1, md, md, true);
+        nblocks = BLOCK_GROUP;
+        for (vidType i = 0; i < vid_global_size; i++) {
+          vidType task_id = vid_global[i];
+          lut_manager.update_para(1, g.get_degree(task_id), g.get_degree(task_id), true);
+          GM_build_LUT<<<nblocks, nthreads>>>(0, nv, gg, frontier_list, frontier_bitmap, md, d_counts, lut_manager, task_id);
+          P18_GM_LUT_global<<<nblocks, nthreads>>>(0, nv, gg, frontier_list, frontier_bitmap, md, d_counts, lut_manager, task_id);
+        }
+      }
+    }
+    else {
+      P18_GM<<<nblocks, nthreads>>>(ne, gg, frontier_list, frontier_bitmap, md, d_counts, lut_manager);
+    }
+  }
+  else if (k == 19) {
+    std::cout << "P19 G2Miner + LUT\n";
+    if (switch_lut){
+      if (WARP_LIMIT != 0) P19_GM_LUT_warp<<<nblocks, nthreads>>>(0, vid_warp_size, d_vid_warp, gg, frontier_list, frontier_bitmap, md, d_counts, lut_manager);
+      if (vid_block_size) {
+        lut_manager.recreate(nblocks, BLOCK_LIMIT, BLOCK_LIMIT, true);
+        P19_GM_LUT_block<<<nblocks, nthreads>>>(0, vid_block_size, d_vid_block, gg, frontier_list, frontier_bitmap, md, d_counts, lut_manager);
+      }
+      if (vid_global_size){
+        lut_manager.recreate(1, md, md, true);
+        nblocks = BLOCK_GROUP;
+        for (vidType i = 0; i < vid_global_size; i++) {
+          vidType task_id = vid_global[i];
+          lut_manager.update_para(1, g.get_degree(task_id), g.get_degree(task_id), true);
+          GM_build_LUT<<<nblocks, nthreads>>>(0, nv, gg, frontier_list, frontier_bitmap, md, d_counts, lut_manager, task_id);
+          P19_GM_LUT_global<<<nblocks, nthreads>>>(0, nv, gg, frontier_list, frontier_bitmap, md, d_counts, lut_manager, task_id);
+        }
+      }
+    }
+    else {
+      P19_GM<<<nblocks, nthreads>>>(ne, gg, frontier_list, frontier_bitmap, md, d_counts, lut_manager);
+    }
+  }
+  else if (k == 20) {
+    std::cout << "P20 G2Miner + LUT\n";
+    if (switch_lut){
+      if (WARP_LIMIT != 0) P20_GM_LUT_warp<<<nblocks, nthreads>>>(0, vid_warp_size, d_vid_warp, gg, frontier_list, frontier_bitmap, md, d_counts, lut_manager);
+      if (vid_block_size) {
+        lut_manager.recreate(nblocks, BLOCK_LIMIT, BLOCK_LIMIT, true);
+        P20_GM_LUT_block<<<nblocks, nthreads>>>(0, vid_block_size, d_vid_block, gg, frontier_list, frontier_bitmap, md, d_counts, lut_manager);
+      }
+      if (vid_global_size){
+        lut_manager.recreate(1, md, md, true);
+        nblocks = BLOCK_GROUP;
+        for (vidType i = 0; i < vid_global_size; i++) {
+          vidType task_id = vid_global[i];
+          lut_manager.update_para(1, g.get_degree(task_id), g.get_degree(task_id), true);
+          GM_build_LUT<<<nblocks, nthreads>>>(0, nv, gg, frontier_list, frontier_bitmap, md, d_counts, lut_manager, task_id);
+          P20_GM_LUT_global<<<nblocks, nthreads>>>(0, nv, gg, frontier_list, frontier_bitmap, md, d_counts, lut_manager, task_id);
+        }
+      }
+    }
+    else {
+      P20_GM<<<nblocks, nthreads>>>(ne, gg, frontier_list, frontier_bitmap, md, d_counts, lut_manager);
+    }
+  }
+  else if (k == 21) {
+    std::cout << "P21 G2Miner + LUT\n";
+    if (switch_lut){
+      if (WARP_LIMIT != 0) P21_GM_LUT_warp<<<nblocks, nthreads>>>(0, vid_warp_size, d_vid_warp, gg, frontier_list, frontier_bitmap, md, d_counts, lut_manager);
+      if (vid_block_size) {
+        lut_manager.recreate(nblocks, BLOCK_LIMIT, BLOCK_LIMIT, true);
+        P21_GM_LUT_block<<<nblocks, nthreads>>>(0, vid_block_size, d_vid_block, gg, frontier_list, frontier_bitmap, md, d_counts, lut_manager);
+      }
+      if (vid_global_size){
+        lut_manager.recreate(1, md, md, true);
+        nblocks = BLOCK_GROUP;
+        for (vidType i = 0; i < vid_global_size; i++) {
+          vidType task_id = vid_global[i];
+          lut_manager.update_para(1, g.get_degree(task_id), g.get_degree(task_id), true);
+          GM_build_LUT<<<nblocks, nthreads>>>(0, nv, gg, frontier_list, frontier_bitmap, md, d_counts, lut_manager, task_id);
+          P21_GM_LUT_global<<<nblocks, nthreads>>>(0, nv, gg, frontier_list, frontier_bitmap, md, d_counts, lut_manager, task_id);
+        }
+      }
+    }
+    else {
+      P21_GM<<<nblocks, nthreads>>>(ne, gg, frontier_list, frontier_bitmap, md, d_counts, lut_manager);
+    }
+  }
+  else if (k == 22) {
+    std::cout << "P22 G2Miner + LUT\n";
+    if (switch_lut){
+      if (WARP_LIMIT != 0) P22_GM_LUT_warp<<<nblocks, nthreads>>>(0, vid_warp_size, d_vid_warp, gg, frontier_list, frontier_bitmap, md, d_counts, lut_manager);
+      if (vid_block_size) {
+        lut_manager.recreate(nblocks, BLOCK_LIMIT, BLOCK_LIMIT, true);
+        P22_GM_LUT_block<<<nblocks, nthreads>>>(0, vid_block_size, d_vid_block, gg, frontier_list, frontier_bitmap, md, d_counts, lut_manager);
+      }
+      if (vid_global_size){
+        lut_manager.recreate(1, md, md, true);
+        nblocks = BLOCK_GROUP;
+        for (vidType i = 0; i < vid_global_size; i++) {
+          vidType task_id = vid_global[i];
+          lut_manager.update_para(1, g.get_degree(task_id), g.get_degree(task_id), true);
+          GM_build_LUT<<<nblocks, nthreads>>>(0, nv, gg, frontier_list, frontier_bitmap, md, d_counts, lut_manager, task_id);
+          P22_GM_LUT_global<<<nblocks, nthreads>>>(0, nv, gg, frontier_list, frontier_bitmap, md, d_counts, lut_manager, task_id);
+        }
+      }
+    }
+    else {
+      P22_GM<<<nblocks, nthreads>>>(ne, gg, frontier_list, frontier_bitmap, md, d_counts, lut_manager);
+    }
   }
   else {
     std::cout << "Not supported right now\n";

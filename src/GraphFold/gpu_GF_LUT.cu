@@ -112,35 +112,25 @@ void PatternSolver(Graph &g, int k, std::vector<uint64_t> &accum, int, int) {
     P1_frequency_count<<<nblocks, nthreads>>>(nv, gg, frontier_list, md, d_counts, G_INDEX);
     P1_count_correction<<<nblocks, nthreads>>>(ne, gg, frontier_list, md, d_counts, G_INDEX2);
   }
-  else if (k == 3){
-    std::cout << "P1 GF\n";
-    P1_fused_matching<<<nblocks, nthreads>>>(nv, ne, gg, frontier_list, md, d_counts, G_INDEX, G_INDEX2);
+  else if (k == 10) {
+    std::cout << "P10 GF LUT edge\n";
+    P3_GF_LUT_warp_edge<<<nblocks, nthreads>>>(0, ne, gg, frontier_list, frontier_bitmap, md, d_counts, G_INDEX, lut_manager);
+    lut_manager.recreate(500, md, md);
+    P3_GF_LUT_block_edge<<<500, nthreads>>>(0, ne, gg, frontier_list, frontier_bitmap, md, d_counts, G_INDEX3, lut_manager);
   }
-  else if (k == 4) {
-    std::cout << "P3 GF\n";
+    else if (k == 11) {
+    std::cout << "P10 GF\n";
     P3_fused_matching<<<nblocks, nthreads>>>(ne, gg, frontier_list, md, d_counts, G_INDEX);
   }
-  else if (k == 5) {
-    std::cout << "P3 GF LUT\n";
-    P3_GF_LUT_warp<<<nblocks, nthreads>>>(0, nv, gg, frontier_list, frontier_bitmap, md, d_counts, G_INDEX, lut_manager);
-    lut_manager.recreate(nblocks, md, md);
-    P3_GF_LUT_block<<<nblocks, nthreads>>>(0, nv, gg, frontier_list, frontier_bitmap, md, d_counts, G_INDEX1, lut_manager);
-  }
-  else if (k == 6) {
-    std::cout << "P7 GF\n";
-    P7_fused_matching<<<nblocks, nthreads>>>(ne, gg, frontier_list, md, d_counts, G_INDEX);
-  }
-  else if (k == 7) {
-    std::cout << "P7 GF LUT\n";
+  else if (k == 13) {
+    std::cout << "P13 GF LUT\n";
     P7_GF_LUT_warp<<<nblocks, nthreads>>>(0, ne, gg, frontier_list, frontier_bitmap, md, d_counts, G_INDEX, lut_manager);
     lut_manager.recreate(500, md, md);
     P7_GF_LUT_block<<<500, nthreads>>>(0, ne, gg, frontier_list, frontier_bitmap, md, d_counts, G_INDEX3, lut_manager);
   }
-  else if (k == 8) {
-    std::cout << "P3 GF LUT edge\n";
-    P3_GF_LUT_warp_edge<<<nblocks, nthreads>>>(0, ne, gg, frontier_list, frontier_bitmap, md, d_counts, G_INDEX, lut_manager);
-    lut_manager.recreate(500, md, md);
-    P3_GF_LUT_block_edge<<<500, nthreads>>>(0, ne, gg, frontier_list, frontier_bitmap, md, d_counts, G_INDEX3, lut_manager);
+  else if (k == 14) {
+    std::cout << "P13 GF\n";
+    P7_fused_matching<<<nblocks, nthreads>>>(ne, gg, frontier_list, md, d_counts, G_INDEX);
   }
   else {
     std::cout << "Not supported right now\n";

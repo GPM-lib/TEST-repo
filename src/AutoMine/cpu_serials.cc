@@ -41,7 +41,7 @@ void PatternSolver(Graph &g, int k, std::vector<uint64_t> &accum, int, int) {
   vidType* list_size = (vidType*) malloc(sizeof(vidType)* n_lists);
   vidType* bitmap_size = (vidType*) malloc(sizeof(vidType) * n_bitmaps);
 
-  int max_size = std::max(10000, md);
+  int max_size = std::max(20000, md);
   LUTManager<> lut_manager(1, max_size, max_size,  false);
   StorageMeta meta;
   meta.lut = lut_manager.getEmptyLUT(0);
@@ -68,25 +68,25 @@ void PatternSolver(Graph &g, int k, std::vector<uint64_t> &accum, int, int) {
     LUT_4star(g, meta, accum[0]);
   else if(k==2)
     BS_vertex_4star(g, meta, accum[0]);
-  else if(k==3)
+  else if(k==10)
     LUT_5star(g, meta, accum[0]);
-  else if(k==4)
+  else if(k==11)
     BS_vertex_5star(g, meta, accum[0]);
-  else if(k==5)
+  else if(k==15)
     LUT_5tailed_star(g, meta, accum[0]);
-  else if(k==6)
+  else if(k==16)
     BS_vertex_5tailed_star(g, meta, accum[0]);
   else if(k==7)
     LUT_5half_house(g, meta, accum[0]);
   else if(k==8)
     BS_vertex_5half_house(g, meta, accum[0]);
-  else if(k==9)
+  else if(k==13)
     LUT_5halfsolid_house(g, meta, accum[0]);
-  else if(k==10)
+  else if(k==14)
     BS_vertex_5harfsolid_house(g, meta, accum[0]);
-  else if(k==11)
+  else if(k==20)
     LUT_5anti_tailed_diamond(g, meta, accum[0]);
-  else if(k==12) 
+  else if(k==21) 
     BS_vertex_5anti_tailed_diamond(g, meta, accum[0]);
   
   double run_time = omp_get_wtime() - start_time;
