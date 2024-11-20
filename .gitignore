@@ -27,3 +27,5 @@ inputs/
 .vscode/*.json
 *.sqlite
 *.swp
+docker/*
+datasets/*

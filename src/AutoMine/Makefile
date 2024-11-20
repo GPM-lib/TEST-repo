@@ -1,11 +1,11 @@
 include ../common.mk
 #INCLUDES+=-I$(CUB_DIR)
 INCLUDES+=-I./cpu_kernels
-all: cpu_serials 
+all: automine_LUT 
 
-cpu_serials: $(OBJS) cpu_serials.o
+automine_LUT: $(OBJS) cpu_serials.o
 	$(CXX) $(CXXFLAGS) $(INCLUDES) cpu_serials.o $(OBJS) -o $@ -lgomp
-	#mv $@ $(BIN)
+	mv $@ $(BIN)
 
 clean:
 	rm *.o
