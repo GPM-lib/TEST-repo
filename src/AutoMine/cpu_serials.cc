@@ -64,31 +64,54 @@ void PatternSolver(Graph &g, int k, std::vector<uint64_t> &accum, int, int) {
   //cmap_kclique(g, k, total);
   
   
-  if(k==1)
+  if(k==1) {
+    std::cout << "P1 Automine LUT\n";
     LUT_4star(g, meta, accum[0]);
-  else if(k==2)
+  }
+  else if(k==2) {
+    std::cout << "P1 Automine\n";
     BS_vertex_4star(g, meta, accum[0]);
-  else if(k==10)
+  }
+  else if(k==10) {
+    std::cout << "P10 Automine LUT\n";
     LUT_5star(g, meta, accum[0]);
-  else if(k==11)
+  }
+  else if(k==11) {
+    std::cout << "P10 Automine\n";
     BS_vertex_5star(g, meta, accum[0]);
-  else if(k==15)
+  }
+  else if(k==15) {
+    std::cout << "P15 Automine LUT\n";
     LUT_5tailed_star(g, meta, accum[0]);
-  else if(k==16)
+  }
+  else if(k==16) {
+    std::cout << "P15 Automine\n";
     BS_vertex_5tailed_star(g, meta, accum[0]);
-  else if(k==7)
+  }
+  else if(k==7) {
+    std::cout << "P7 Automine LUT\n";
     LUT_5half_house(g, meta, accum[0]);
-  else if(k==8)
+  }
+  else if(k==8) {
+    std::cout << "P7 Automine\n";
     BS_vertex_5half_house(g, meta, accum[0]);
-  else if(k==13)
+  }
+  else if(k==13) {
+    std::cout << "P13 Automine LUT\n";
     LUT_5halfsolid_house(g, meta, accum[0]);
-  else if(k==14)
+  }
+  else if(k==14) {
+    std::cout << "P13 Automine\n";
     BS_vertex_5harfsolid_house(g, meta, accum[0]);
-  else if(k==20)
+  }
+  else if(k==20) {
+    std::cout << "P20 Automine LUT\n";
     LUT_5anti_tailed_diamond(g, meta, accum[0]);
-  else if(k==21) 
+  }
+  else if(k==21) {
+    std::cout << "P20 Automine\n"; 
     BS_vertex_5anti_tailed_diamond(g, meta, accum[0]);
-  
+  }
   double run_time = omp_get_wtime() - start_time;
   t.Stop();
   std::cout << "runtime [omp_base] = " << run_time << " sec  " << accum[0] <<"\n";

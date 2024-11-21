@@ -21,6 +21,7 @@
 #include <cassert>
 #include <cstdint>
 #include <iostream>
+#include <regex>
 #include <iterator>
 #include <stdexcept>
 #include <algorithm>
