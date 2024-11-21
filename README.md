@@ -53,16 +53,25 @@ mkdir bin && make
 + `[use_lut]` If the string "lut" is provided, the program will enable LUT mode.
 
 ```
-./bin/automine_LUT ./datasets/cit-Patents/graph P1
-./bin/automine_LUT ./datasets/cit-Patents/graph P1 lut
+./bin/automine_LUT ./datasets/mico/graph P1
+./bin/automine_LUT ./datasets/mico/graph P1 lut
 ```
 
 ## 2.5. Codegen
 
-Codegen source: `codegen/*`
+Codegen source: `codegen/*`  
+Codegen pattern yml example: `codegen/codegen/patterns`  
+Codegen kernel example: `codegen/include/generated/generated.cuh`
 
-## Generated pattern
-Codegen pattern yml example: `codegen/codegen/patterns`
+## Codegen from 4-star.yml (P1) and Test
++ Codegen LUT kernel(build LUT in Level 1)
+```
+cd scripts && ./codegen.sh 1
+```
++ Make and run
+```
+cd .. && make && cd scripts && ./run.sh
+```
 
 <!-- # 3. Run GLumin in docker.
 ## 3.1 Launch the GLumin docker

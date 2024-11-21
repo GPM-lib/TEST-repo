@@ -1,5 +1,0 @@
-pattern:
-  name: 5-half-double-triangle
-  edges: [AB, AC, BC, AD, AE]
-  orientation: [BC, DE]
-  order: ABCDE

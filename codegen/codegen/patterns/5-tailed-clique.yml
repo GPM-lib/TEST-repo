@@ -1,5 +1,0 @@
-pattern:
-  name: 5-tailed-clique
-  edges: [AB, AC, AD, BC, BD, CD, AE]
-  orientation: [BD]
-  order: ABCDE

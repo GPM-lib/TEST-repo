@@ -33,6 +33,7 @@ class PatternParser:
         res_idx = {}
         if res:
             for x, y in res:
+                # TODO: how to remove this?
                 if int(node_index[y]) > int(node_index[x]):
                     res_idx[node_index[y]] = node_index[x]
                 else:
@@ -297,7 +298,10 @@ class ForLoop:
         self.indent = indent
 
     def __repr__(self):
-        return f"for v{self.vertex} in {self.vertex_set}: | ({self.loop_pattern})\n{self.block}"
+        if self.loop_type != "inter_warp_edge_parallel_first":
+            return f"for v{self.vertex} in {self.vertex_set}: | ({self.loop_pattern})\n{self.block}"
+        else:
+            return f"for (v0, v1) in #ALL_EDGES: | (:E)\n{self.block}"
 
     def code(self):
         for_statement = ""
@@ -307,6 +311,8 @@ class ForLoop:
             for_statement = f"auto candidate_v{self.vertex} = {self.vertex_set.code()};\n{self.indent}for(vidType v{self.vertex}_idx = 0; v{self.vertex}_idx < candidate_v{self.vertex}.size(); v{self.vertex}_idx ++){{\n{self.indent}  auto v{self.vertex} = candidate_v{self.vertex}[v{self.vertex}_idx];\n"
         elif self.loop_type == "intra_warp_parallel":
             for_statement = f"auto candidate_v{self.vertex} = {self.vertex_set.code()};\n{self.indent}for(vidType v{self.vertex}_idx = thread_lane; v{self.vertex}_idx < candidate_v{self.vertex}.size(); v{self.vertex}_idx += WARP_SIZE){{\n{self.indent}  auto v{self.vertex} = candidate_v{self.vertex}[v{self.vertex}_idx];\n"
+        elif self.loop_type == "inter_warp_edge_parallel_first":
+            for_statement = f"for(vidType e01_idx = warp_id; e01_idx < g.E(); e01_idx += num_warps){{\n{self.indent}  auto v0_idx = g.get_src(e01_idx);\n{self.indent}  auto v0 = v0_idx;\n{self.indent}  auto v1 = g.get_dst(e01_idx);\n{self.indent}  auto v1_idx = g.get_dst_ptr(e01_idx) - g.N(v0);\n"
         else:
             assert("Unknown loop type.")
         return for_statement + self.block.code() + f"\n{self.indent}}}"
@@ -353,6 +359,16 @@ class Block:
 
     def add_statement(self, statement):
         self.statements.append(statement)
+
+    def slice(self, start, end):
+        new_block = Block(self.indent)
+        for i in range(start, end):
+            new_block.add_statement(self, self.statements[i])
+        return new_block
+
+    def merge(self, blk):
+        for s in blk.statements:
+            self.add_statement(s)
 
 class Instruction:
     """ 
@@ -563,6 +579,24 @@ class OptimizationPass:
         self.global_status = {}
         self.vertex_symbol = {}
         self.lut_pivot = 0
+        self.edge_centric = False
+
+    def config_edge_centric(self):
+        self.edge_centric = True
+
+    def convert2edge_centric(self, root):
+        next_loop = root.block.get_next_loop()
+        next_loop_block = next_loop.block
+        next_loop_idx = root.block.get_next_loop_idx()
+        assert(next_loop_idx != None)
+        if next_loop.loop_type == "FusedForLoop":
+            #TODO(mengke) build lut here is an overkill
+            return root
+        else:
+            loop_block = root.block.slice(0, next_loop_idx)
+            loop_block.merge(next_loop_block)
+            root = ForLoop("inter_warp_edge_parallel_first", None, None, loop_block, "  ", loop_pattern = ":E")
+            return root
 
     def set_pivot(self, pivot):
         self.lut_pivot = pivot
@@ -666,6 +700,7 @@ class OptimizationPass:
                             # symbols like v0, v1, v2, v3 will not be generated
                             self.vertex_symbol[str(c_lvl+1)] = False
                         else:
+                            # TODO(mengke): we may not have the vid version of this loop_set
                             # symbols like v0, v1, v2, v3 will be generated
                             self.vertex_symbol[str(c_lvl+1)] = True
                     if statement.block.get_next_loop_idx() == None:
@@ -695,6 +730,7 @@ class OptimizationPass:
                             if statement.upper_bound >= 0:
                                 vertex_idx = ID(str(statement.right_operand.operand) + "_idx")
                                 self.global_status[vertex_idx.id()] = statement.upper_bound
+                                # TODO(mengke): now believe nvcc will ignore no-usage memory access
                                 vertex = str(statement.upper_bound)
                                 if not self.vertex_symbol.get((vertex), False):
                                    vertex_idx = ID(vertex + "_idx")
@@ -722,7 +758,7 @@ class OptimizationPass:
                             if desired_pattern[-1] == "I":
                                 # if bitmap is not existed, recover it from index
                                 desired_pattern = c_in_pattern[:-1] + "B"
-                                bid = self.get_new_buffer("B", allocator, desired_pattern, c_lvl, sys.maxsize) 
+                                bid = self.get_new_buffer("B", allocator, desired_pattern, c_lvl, sys.maxsize) # TODO(mengek): this can be reused
                                 ins = Instruction(".B", lhs, bid) # build index from vmap into buffer with ID=bid
                                 c_loop.block.insert_statement(statement_idx, ins)
                                 statement_idx += 1
@@ -737,7 +773,7 @@ class OptimizationPass:
                                 statement.out_pattern = c_out_pattern[:-1] + "B"
                                 c_out_pattern = statement.out_pattern
                                 allocator.del_mapping(c_out_pattern)
-                                bid = self.get_new_buffer("B", allocator, statement.out_pattern, c_lvl, sys.maxsize) 
+                                bid = self.get_new_buffer("B", allocator, statement.out_pattern, c_lvl, sys.maxsize) # TODO(mengek): this can be reused
                                 statement.output = Constant(bid.id())
                                 if statement.upper_bound >= 0:
                                     statement.set_upper_bound(str(statement.upper_bound) + "_idx")
@@ -748,17 +784,41 @@ class OptimizationPass:
                             elif desired_pattern[-1] == "V":
                                 # prefix is not in LUT, thus we have to use original neighbor list
                                 c_in_pat = c_in_pattern.split(":")[0]
-                                if c_in_pat[0] == "-":
+                                if c_in_pat[0] == "-": # we meet a lazy materialization like ---01
                                     if all(x=="-" for x in c_in_pat[:-1]) and c_in_pat[-1] == '1':
+                                        # something like #3 = difference(N(2), N(v1)), both rhs and lhs may not have symbol
                                         if not self.vertex_symbol.get(str(statement.left_operand.operand), False):
                                             vertex_idx = ID(str(statement.left_operand.operand) + "_idx")
                                             ins = Instruction("vid", Constant(vertex_idx.id()))
                                             c_loop.block.insert_statement(statement_idx, ins)
                                             statement_idx += 1
                                             self.vertex_symbol[str(statement.left_operand.operand)] = True
-                                        vertex = ID(str(statement.left_operand.operand))
-                                        lhs = SetBuilder("N", vertex)
+                                        if not self.vertex_symbol.get(str(statement.right_operand.operand), False):
+                                            vertex_idx = ID(str(statement.right_operand.operand) + "_idx")
+                                            ins = Instruction("vid", Constant(vertex_idx.id()))
+                                            c_loop.block.insert_statement(statement_idx, ins)
+                                            statement_idx += 1
+                                            self.vertex_symbol[str(statement.right_operand.operand)] = True
+                                        vertex_l = ID(str(statement.left_operand.operand))
+                                        lhs = SetBuilder("N", vertex_l)
+                                        vertex_r = ID(str(statement.right_operand.operand))
+                                        rhs = SetBuilder("N", vertex_r)
                                         statement.left_operand = lhs
+                                        statement.right_operand = rhs
+                                        statement.in_pattern = c_in_pattern[:-1] + "V"
+                                        statement.out_pattern = c_out_pattern[:-1] + "V"
+                                        c_loop.block.replace_statement(statement_idx, statement)
+                                    else:
+                                        # something like #4 = difference(#3, N(v1)), rhs may not have symbol
+                                        if not self.vertex_symbol.get(str(statement.right_operand.operand), False):
+                                            vertex_idx = ID(str(statement.right_operand.operand) + "_idx")
+                                            ins = Instruction("vid", Constant(vertex_idx.id()))
+                                            c_loop.block.insert_statement(statement_idx, ins)
+                                            statement_idx += 1
+                                            self.vertex_symbol[str(statement.right_operand.operand)] = True
+                                        vertex_r = ID(str(statement.right_operand.operand))
+                                        rhs = SetBuilder("N", vertex_r)
+                                        statement.right_operand = rhs
                                         statement.in_pattern = c_in_pattern[:-1] + "V"
                                         statement.out_pattern = c_out_pattern[:-1] + "V"
                                         c_loop.block.replace_statement(statement_idx, statement)
@@ -791,7 +851,7 @@ class OptimizationPass:
                             if desired_pattern[-1] == "B":
                                 # if index is not existed, recover it from Bitmap
                                 desired_pattern = c_in_pattern[:-1] + "I"
-                                bid = self.get_new_buffer("A", allocator, desired_pattern, c_lvl, sys.maxsize) 
+                                bid = self.get_new_buffer("A", allocator, desired_pattern, c_lvl, sys.maxsize) # TODO(mengek): this can be reused
                                 ins = Instruction(".I", lhs, bid) # build index from vmap into buffer with ID=bid
                                 c_loop.block.insert_statement(statement_idx, ins)
                                 statement_idx += 1
@@ -833,6 +893,9 @@ class OptimizationPass:
                 statement_idx += 1
             c_loop = c_loop.block.get_next_loop()
             c_lvl += 1
+
+        if self.edge_centric and self.select() != 1:
+            root = self.convert2edge_centric(root)
         return root, allocator
 
 class CodeGenerator:
@@ -874,6 +937,7 @@ def main():
     parser.add_argument('-n', '--name', required=True, help="[required] the name of the generated kernel.")
     parser.add_argument('-c', '--output', required=True, help="[required] wirte genrated kernel to this path.")
     parser.add_argument('-l', '--lut', required=False, help="choose one vertex to generate LUT.")
+    parser.add_argument('-e', '--edge-centric', required=False, action='store_true', help="forced use edge-centric.")
     args = parser.parse_args()
 
     pattern_parser = PatternParser()
@@ -883,6 +947,8 @@ def main():
     root, allocator = lower_pass.lower(A, O)
 
     opt_pass = OptimizationPass()
+    if args.edge_centric:
+        opt_pass.config_edge_centric()
     opt_pass.set_pivot(int(args.lut))
     root, allocator = opt_pass.optimize(A, O, root, allocator)
     print("> After optimize")

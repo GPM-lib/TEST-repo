@@ -1,5 +1,5 @@
-#define __N_LISTS {SLOT_CAPACITY}
-#define __N_BITMAPS {BITMAP_CAPACITY}
+#define __N_LISTS__ {SLOT_CAPACITY}
+#define __N_BITMAPS__ {BITMAP_CAPACITY}
 
 __global__ void __launch_bounds__(BLOCK_SIZE, 8)
 {KERNEL_NAME}(vidType nv, 
@@ -38,5 +38,5 @@ __global__ void __launch_bounds__(BLOCK_SIZE, 8)
   {WARP_LEVEL_DFS_CODE}
   // END OF CODEGEN
 
-  atomicAdd(&counter[0], count);
+  atomicAdd(counter, count);
 }}

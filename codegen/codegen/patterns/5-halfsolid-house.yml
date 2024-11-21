@@ -1,5 +1,0 @@
-pattern:
-  name: 5-halfsolid-house
-  edges: [AB, AC, BC, BD, BE, CD, CE]
-  orientation: [BC, AD, DE]
-  order: BCADE

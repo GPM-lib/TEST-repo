@@ -1,5 +1,5 @@
-#define __N_LISTS__ 2
-#define __N_BITMAPS__ 1
+#define __N_LISTS 2
+#define __N_BITMAPS 1
 
 __global__ void __launch_bounds__(BLOCK_SIZE, 8)
 generated_kernel(vidType nv, 
@@ -52,5 +52,5 @@ generated_kernel(vidType nv,
   }
   // END OF CODEGEN
 
-  atomicAdd(counter, count);
+  atomicAdd(&counter[0], count);
 }

@@ -1,5 +1,0 @@
-pattern:
-  name: 5-diamond-house
-  edges: [AB, BC, CD, AD, AC, AE, BE]
-  orientation: []
-  order: ABCDE

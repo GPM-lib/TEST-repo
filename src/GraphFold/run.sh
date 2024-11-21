@@ -1,4 +1,4 @@
 BIN=../../bin/pattern_gpu_GF_LUT
-GRAPH=../../inputs/soc-delicious/graph
-export CUDA_VISIBLE_DEVICES=7
+GRAPH=../../inputs/mico/graph
+export CUDA_VISIBLE_DEVICES=0
 ${BIN} ${GRAPH} $1 $2

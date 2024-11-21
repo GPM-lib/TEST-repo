@@ -1,5 +1,5 @@
-#define __N_LISTS__ 2
-#define __N_BITMAPS__ 1
+#define __N_LISTS 1
+#define __N_BITMAPS 1
 
 __global__ void __launch_bounds__(BLOCK_SIZE, 8)
 generated_kernel(vidType nv, 
@@ -9,7 +9,7 @@ generated_kernel(vidType nv,
                   vidType max_deg,
                   AccType *counter,
                   LUTManager<> LUTs){
-  __shared__ vidType list_size[WARPS_PER_BLOCK * 2];
+  __shared__ vidType list_size[WARPS_PER_BLOCK * 1];
   __shared__ vidType bitmap_size[WARPS_PER_BLOCK * 1];
   __shared__ typename BlockReduce::TempStorage temp_storage;
   int thread_id   = blockIdx.x * blockDim.x + threadIdx.x;
@@ -28,7 +28,7 @@ generated_kernel(vidType nv,
   meta.nv = nv;
   meta.slot_size = max_deg;
   meta.bitmap_size = (max_deg + WARP_SIZE - 1) / WARP_SIZE;
-  meta.capacity = 2;
+  meta.capacity = 1;
   meta.bitmap_capacity = 1;
   meta.global_warp_id = warp_id;
   meta.local_warp_id = warp_lane;
@@ -40,17 +40,11 @@ generated_kernel(vidType nv,
     auto v0 = candidate_v0[v0_idx];
     auto candidate_v1 = __get_vlist_from_graph(g, meta, /*vid=*/v0);
     __build_LUT(g, meta, __get_vlist_from_graph(g, meta, /*vid=*/v0));;
-    for (vidType v1_idx = 0; v1_idx < candidate_v1.size(); v1_idx += 1) {
-      auto v1 = __build_vid_from_vidx(g, meta, v1_idx);
-      __build_index_from_vmap(g, meta, __get_vmap_from_lut_vid_limit(g, meta, /*idx_id=*/v1_idx, /*connected=*/false, /*upper_bound=*/v1), /*slot_id=*/1);
-      auto candidate_v2_idx = __get_vmap_from_heap(g, meta, /*bitmap_id=*/-1, /*slot_id=*/1);
-      for(vidType v2_idx_idx = thread_lane; v2_idx_idx < candidate_v2_idx.size(); v2_idx_idx += WARP_SIZE){
-        auto v2_idx = candidate_v2_idx[v2_idx_idx];
-        count += __difference_num(__get_vmap_from_lut(g, meta, /*idx_id=*/v1_idx, /*connected=*/false, /*upper_bound=*/-1), __get_vmap_from_lut(g, meta, /*idx_id=*/v2_idx, /*connected=*/false, /*upper_bound=*/-1), /*upper_bound=*/v2_idx);
-      }
+    for (vidType v1_idx = thread_lane; v1_idx < candidate_v1.size(); v1_idx += WARP_SIZE) {
+      count += __intersect_num(__get_vmap_from_lut(g, meta, /*idx_id=*/v1_idx, /*connected=*/true, /*upper_bound=*/-1), /*upper_bound=*/v1_idx);
     }
   }
   // END OF CODEGEN
 
-  atomicAdd(counter, count);
+  atomicAdd(&counter[0], count);
 }

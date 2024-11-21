@@ -7,7 +7,7 @@ void CliqueSolver(Graph &g, int k, uint64_t &total, int, int);
 int main(int argc, char *argv[]) {
   if (argc < 3) {
     std::cout << "Usage: " << argv[0] << "<graph> <k> [ngpu(0)] [chunk_size(1024)]\n";
-    std::cout << "Example: " << argv[0] << " /inputs/cit-Patents/graph P4 lut\n";
+    std::cout << "Example: " << argv[0] << " /inputs/mico/graph P4 lut\n";
     exit(1);
   }
   std::string pattern_name = argv[2];

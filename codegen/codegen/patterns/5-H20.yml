@@ -1,5 +1,0 @@
-pattern:
-  name: 5-H20
-  edges: [AB, AC, BD, BE, CD, CE]
-  orientation: [BC]
-  order: BECAD
